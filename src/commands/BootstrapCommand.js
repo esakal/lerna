@@ -534,11 +534,13 @@ export default class BootstrapCommand extends Command {
           const dependencyPackage = this.packageGraph.get(dependency).package;
 
           // get path to dependency and its scope
-          const { location: dependencyLocation } = dependencyPackage;
-          const dependencyPackageJsonLocation = path.join(dependencyLocation, "package.json");
+          const { npmDistDirectory: dependencyNPMDistDirectory,
+                  location : dependencyLocation } = dependencyPackage;
+          const dependencyNPMDistLocation = path.join(dependencyLocation, dependencyNPMDistDirectory);
+          const dependencyDistPackageJsonLocation = path.join(dependencyNPMDistLocation, "package.json");
 
           // ignore dependencies without a package.json file
-          if (!FileSystemUtilities.existsSync(dependencyPackageJsonLocation)) {
+          if (!FileSystemUtilities.existsSync(dependencyDistPackageJsonLocation)) {
             tracker.warn(
               "ENOPKG",
               `Unable to find package.json for ${dependency} dependency of ${filteredPackage.name},  ` +
@@ -556,7 +558,7 @@ export default class BootstrapCommand extends Command {
               const isDepSymlink = FileSystemUtilities.isSymlink(pkgDependencyLocation);
 
               // installed dependency is a symlink pointing to a different location
-              if (isDepSymlink !== false && isDepSymlink !== dependencyLocation) {
+              if (isDepSymlink !== false && isDepSymlink !== dependencyNPMDistLocation) {
                 tracker.warn(
                   "EREPLACE_OTHER",
                   `Symlink already exists for ${dependency} dependency of ${filteredPackage.name}, ` +
@@ -581,15 +583,15 @@ export default class BootstrapCommand extends Command {
 
             // create package symlink
             packageActions.push((cb) => FileSystemUtilities.symlink(
-              dependencyLocation, pkgDependencyLocation, "junction", cb
+              dependencyNPMDistLocation, pkgDependencyLocation, "junction", cb
             ));
 
-            const dependencyPackageJson = require(dependencyPackageJsonLocation);
+            const dependencyPackageJson = require(dependencyDistPackageJsonLocation);
             if (dependencyPackageJson.bin) {
               const destFolder = filteredPackage.nodeModulesLocation;
               packageActions.push((cb) => {
                 this.createBinaryLink(
-                  dependencyLocation,
+                  dependencyNPMDistLocation,
                   destFolder,
                   dependency,
                   dependencyPackageJson.bin,

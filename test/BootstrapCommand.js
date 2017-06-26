@@ -282,6 +282,61 @@ describe("BootstrapCommand", () => {
     });
   });
 
+  describe("with local package dependencies publishing from separated npm dist directory", () => {
+    let testDir;
+
+    beforeEach(() => initFixture("BootstrapCommand/npm-dist-directory").then((dir) => {
+      testDir = dir;
+    }));
+
+    beforeEach(stubSymlink);
+    afterEach(resetSymlink);
+
+    it("should bootstrap packages", (done) => {
+      const bootstrapCommand = new BootstrapCommand([], {
+        scope : "@test/package-@(1|2)"
+      }, testDir);
+
+      bootstrapCommand.runValidations();
+      bootstrapCommand.runPreparations();
+
+      bootstrapCommand.runCommand(exitWithCode(0, (err) => {
+        if (err) return done.fail(err);
+
+        try {
+          expect(installedPackagesInDirectories(testDir)).toMatchSnapshot();
+          expect(symlinkedDirectories(testDir)).toMatchSnapshot();
+
+          done();
+        } catch (ex) {
+          done.fail(ex);
+        }
+      }));
+    });
+
+    it("should ignore dependencies without a package.json file", (done) => {
+      const bootstrapCommand = new BootstrapCommand([], {
+        scope: "@test/package-@(3|4)"
+      }, testDir);
+
+      bootstrapCommand.runValidations();
+      bootstrapCommand.runPreparations();
+
+      bootstrapCommand.runCommand(exitWithCode(0, (err) => {
+        if (err) return done.fail(err);
+
+        try {
+          expect(installedPackagesInDirectories(testDir)).toMatchSnapshot();
+          expect(symlinkedDirectories(testDir)).toMatchSnapshot();
+
+          done();
+        } catch (ex) {
+          done.fail(ex);
+        }
+      }));
+    });
+  });
+
   describe("with multiple package locations", () => {
     let testDir;
 

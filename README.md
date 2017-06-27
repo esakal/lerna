@@ -201,6 +201,7 @@ When run, this command will:
 
 `lerna bootstrap` respects the `--ignore`, `--scope` and `--include-filtered-dependencies` flags (see [Flags](#flags)).
 
+
 #### How `bootstrap` works
 
 Let's use `babel` as an example.
@@ -235,6 +236,21 @@ Let's use `babel` as an example.
 - Circular dependencies result in circular symlinks which *may* impact your editor/IDE.
 
 [Webstorm](https://www.jetbrains.com/webstorm/) locks up when circular symlinks are present. To prevent this, add `node_modules` to the list of ignored files and folders in `Preferences | Editor | File Types | Ignored files and folders`.
+
+#### Support package that publish from custom sub-directory.
+To configure a package that is using a custom sub-directory when publishing to npm, its' `package.json` should include the following mapping:
+```json
+"config" : {
+   "npmDistDirectory" : "dist"
+}
+```
+You should change the value `dist` to your actual sub-directory name.
+
+Lerna checks for this configuration and if found it will symlink to the specified directory instead.
+
+**Notes:**
+- the provided `npmDistDirectory` must exists before running the `bootstrap` command or as part of the package preinstall phase (`package.json:scripts.preinstall`). It should include a `package.json` file with at least `id` and `name`.
+- During the package build process, the `npmDistDirectory` cannot be deleted because it will break the symlink. Instead you should clear its' content leaving the directory in place.
 
 ### publish
 

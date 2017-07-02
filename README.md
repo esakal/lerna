@@ -241,7 +241,7 @@ Let's use `babel` as an example.
 To configure a package that is using a custom sub-directory when publishing to npm, its' `package.json` should include the following mapping:
 ```json
 "config" : {
-   "npmDistDirectory" : "dist"
+   "publishDirectory" : "dist"
 }
 ```
 You should change the value `dist` to your actual sub-directory name.
@@ -249,8 +249,8 @@ You should change the value `dist` to your actual sub-directory name.
 Lerna checks for this configuration and if found it will symlink to the specified directory instead.
 
 **Notes:**
-- the provided `npmDistDirectory` must exists before running the `bootstrap` command or as part of the package preinstall phase (`package.json:scripts.preinstall`). It should include a `package.json` file with at least `id` and `name`.
-- During the package build process, the `npmDistDirectory` cannot be deleted because it will break the symlink. Instead you should clear its' content leaving the directory in place.
+- The bootstrap process will create 'package.json' file in the publish directory if not found before it symlink to that folder with a `private` flag set to `true`.
+- During the package build process, the `publishDirectory` cannot be deleted because it will break the symlink. Instead you should clear its' content leaving the directory in place.
 
 ### publish
 

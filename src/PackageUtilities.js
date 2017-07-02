@@ -44,7 +44,7 @@ export default class PackageUtilities {
 
   static getPackages({
     packageConfigs,
-    rootPath,
+    rootPath
   }) {
     const packages = [];
     const globOpts = {
@@ -85,6 +85,7 @@ export default class PackageUtilities {
 
     return packages;
   }
+
 
   static getPackageGraph(packages, depsOnly) {
     return new PackageGraph(packages, depsOnly);

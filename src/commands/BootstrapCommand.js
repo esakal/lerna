@@ -3,6 +3,7 @@ import async from "async";
 import getPort from "get-port";
 import path from "path";
 import semver from "semver";
+import writeJsonFile from "write-json-file";
 
 import Command from "../Command";
 import FileSystemUtilities from "../FileSystemUtilities";
@@ -531,16 +532,32 @@ export default class BootstrapCommand extends Command {
         })
         .forEach((dependency) => {
           // get Package of dependency
-          const dependencyPackage = this.packageGraph.get(dependency).package;
+          let dependencyPackage = this.packageGraph.get(dependency).package;
+
+          dependencyPackage = dependencyPackage.getPublishDirectoryPackage(
+          () => {
+            // create minimal package json content for the symlink process
+            const pkgJson =  {
+              name : dependencyPackage.name,
+              version : dependencyPackage.version,
+              private : true
+            };
+
+            tracker.info("creating file 'package.json' in publish directory '" +
+              dependencyPackage.publishDirectoryLocation + "' of package '" + dependencyPackage.name);
+            const publishPackageJsonPath = path.join(dependencyPackage.publishDirectoryLocation,
+              "package.json");
+            writeJsonFile.sync(publishPackageJsonPath, pkgJson, { indent : 2 });
+
+            return pkgJson;
+          }) || dependencyPackage;
 
           // get path to dependency and its scope
-          const { npmDistDirectory: dependencyNPMDistDirectory,
-                  location : dependencyLocation } = dependencyPackage;
-          const dependencyNPMDistLocation = path.join(dependencyLocation, dependencyNPMDistDirectory);
-          const dependencyDistPackageJsonLocation = path.join(dependencyNPMDistLocation, "package.json");
+          const { location: dependencyLocation } = dependencyPackage;
+          const dependencyPackageJsonLocation = path.join(dependencyLocation, "package.json");
 
           // ignore dependencies without a package.json file
-          if (!FileSystemUtilities.existsSync(dependencyDistPackageJsonLocation)) {
+          if (!FileSystemUtilities.existsSync(dependencyPackageJsonLocation)) {
             tracker.warn(
               "ENOPKG",
               `Unable to find package.json for ${dependency} dependency of ${filteredPackage.name},  ` +
@@ -558,13 +575,13 @@ export default class BootstrapCommand extends Command {
               const isDepSymlink = FileSystemUtilities.isSymlink(pkgDependencyLocation);
 
               // installed dependency is a symlink pointing to a different location
-              if (isDepSymlink !== false && isDepSymlink !== dependencyNPMDistLocation) {
+              if (isDepSymlink !== false && isDepSymlink !== dependencyLocation) {
                 tracker.warn(
                   "EREPLACE_OTHER",
                   `Symlink already exists for ${dependency} dependency of ${filteredPackage.name}, ` +
                   "but links to different location. Replacing with updated symlink..."
                 );
-              // installed dependency is not a symlink
+                // installed dependency is not a symlink
               } else if (isDepSymlink === false) {
                 tracker.warn(
                   "EREPLACE_EXIST",
@@ -583,15 +600,15 @@ export default class BootstrapCommand extends Command {
 
             // create package symlink
             packageActions.push((cb) => FileSystemUtilities.symlink(
-              dependencyNPMDistLocation, pkgDependencyLocation, "junction", cb
+              dependencyLocation, pkgDependencyLocation, "junction", cb
             ));
 
-            const dependencyPackageJson = require(dependencyDistPackageJsonLocation);
+            const dependencyPackageJson = require(dependencyPackageJsonLocation);
             if (dependencyPackageJson.bin) {
               const destFolder = filteredPackage.nodeModulesLocation;
               packageActions.push((cb) => {
                 this.createBinaryLink(
-                  dependencyNPMDistLocation,
+                  dependencyLocation,
                   destFolder,
                   dependency,
                   dependencyPackageJson.bin,

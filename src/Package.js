@@ -77,7 +77,8 @@ export default class Package {
   isPrivate() {
     // favor custom dist package private mode if exists assuming 'private' is used to determine
     // if the package can be deployed to NPM.
-    return this.getPublishDirectoryPackage() ? !!this.getPublishDirectoryPackage().private : !!this._package.private;
+    return this.getPublishDirectoryPackage() ? !!this.getPublishDirectoryPackage().private
+      : !!this._package.private;
   }
 
   toJSON() {
@@ -173,8 +174,6 @@ export default class Package {
           log.error("EPKGCONFIG", message);
           throw new Error(message);
         }
-      } else {
-        this._publishDirPackage = this;
       }
     }
 
